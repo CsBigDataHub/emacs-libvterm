@@ -101,6 +101,25 @@ the executable."
     (error "Vterm needs CMake to be compiled.  Please, install CMake"))
   t)
 
+(defun vterm-module--cmake-module-suffix-arg ()
+  "Return the CMake argument that sets the vterm module suffix."
+  (if module-file-suffix
+      (concat "-DVTERM_MODULE_SUFFIX="
+              (shell-quote-argument module-file-suffix)
+              " ")
+    ""))
+
+(defun vterm-module--load ()
+  "Load `vterm-module' and return non-nil when successful."
+  (or (require 'vterm-module nil t)
+      (let ((module-path (and module-file-suffix
+                              (locate-file "vterm-module"
+                                           load-path
+                                           (list module-file-suffix)))))
+        (when (and module-path (file-exists-p module-path))
+          (load module-path nil t)))
+      (featurep 'vterm-module)))
+
 ;;;###autoload
 (defun vterm-module-compile ()
   "Compile vterm-module."
@@ -120,6 +139,7 @@ the executable."
              mkdir -p build; \
              cd build; \
              cmake -G 'Unix Makefiles' "
+             (vterm-module--cmake-module-suffix-arg)
              vterm-module-cmake-args
              " ..; \
              make; \
@@ -133,12 +153,13 @@ the executable."
         (error "Compilation of `emacs-libvterm' module failed!")))))
 
 ;; If the vterm-module is not compiled yet, compile it
-(unless (require 'vterm-module nil t)
+(unless (vterm-module--load)
   (if (or vterm-always-compile-module
           (y-or-n-p "Vterm needs `vterm-module' to work.  Compile it now? "))
       (progn
         (vterm-module-compile)
-        (require 'vterm-module))
+        (unless (vterm-module--load)
+          (error "Vterm compiled `vterm-module' but could not load it")))
     (error "Vterm will not work until `vterm-module' is compiled!")))
 
 ;;; Dependencies
