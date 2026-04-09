@@ -365,7 +365,7 @@ by default."
   "Whitelisted Emacs functions that can be executed from vterm.
 
 You can execute Emacs functions directly from vterm buffers.  To do this,
-you have to escape the name of the function and its arguments with \e]51;E.
+you have to escape the name of the function and its arguments with \\e]51;E.
 
 See Message passing in README.
 
@@ -404,13 +404,13 @@ This means that vterm will render bold with the default face weight."
   :type  'boolean
   :group 'vterm)
 
+(define-obsolete-variable-alias 'vterm-set-bold-hightbright
+  'vterm-set-bold-highbright "0.0.2")
+
 (defcustom vterm-set-bold-highbright nil
   "When not-nil, using highbright colors for bolded text, see #549."
   :type  'boolean
   :group 'vterm)
-
-(define-obsolete-variable-alias 'vterm-set-bold-hightbright
-  'vterm-set-bold-highbright "0.0.2")
 
 (defcustom vterm-ignore-blink-cursor t
   "When t, vterm will ignore request from application to turn on/off cursor blink.
@@ -598,6 +598,7 @@ Only background is used."
   "Shell process of current term.")
 
 (defvar-local vterm--redraw-timer nil)
+(define-obsolete-variable-alias 'vterm--redraw-immididately 'vterm--redraw-immediately "2025-07-15")
 (defvar-local vterm--redraw-immediately nil)
 (defvar-local vterm--linenum-remapping nil)
 (defvar-local vterm--prompt-tracking-enabled-p nil)
@@ -606,8 +607,6 @@ Only background is used."
 (defvar-local vterm--delete-region-function (symbol-function #'delete-region))
 (defvar-local vterm--undecoded-bytes nil)
 (defvar-local vterm--copy-mode-fake-newlines nil)
-
-(define-obsolete-variable-alias 'vterm--redraw-immididately 'vterm--redraw-immediately "2025-07-15")
 
 (defvar vterm-timer-delay 0.1
   "Delay for refreshing the buffer after receiving updates from libvterm.
@@ -812,8 +811,8 @@ Exceptions are defined by `vterm-keymap-exceptions'."
     (setq-local font-lock-defaults '(nil t))
 
     (add-function :filter-return
-                  (local 'filter-buffer-substring-function)
-                  #'vterm--filter-buffer-substring)
+      (local 'filter-buffer-substring-function)
+      #'vterm--filter-buffer-substring)
     (setq vterm--process
           (make-process
            :name "vterm"
@@ -1264,12 +1263,9 @@ Argument ARG is passed to `yank'"
 But when clicking to the unused area below the last prompt,
 move the cursor to the prompt area."
   (interactive "e\np")
-  (let ((pt (mouse-set-point event promote-to-region)))
-    (if (= (count-words pt (point-max)) 0)
-        (vterm-reset-cursor-point)
-      pt))
-  ;; Otherwise it selects text for every other click
-  (keyboard-quit))
+  (if (> (count-words (posn-point (event-end event)) (point-max)) 0)
+      (mouse-set-point event promote-to-region)
+    (vterm-reset-cursor-point)))
 
 (defun vterm-send-string (string &optional paste-p)
   "Send the string STRING to vterm.
@@ -1928,7 +1924,7 @@ Effectively toggle between the two positions."
   "Reinsert fake newline from `vterm--copy-mode-fake-newlines'."
   (let ((inhibit-read-only t)
         (inhibit-redisplay t)
-        (fake-newline-text "\n")
+        (fake-newline-text (copy-sequence "\n"))
         fake-newline-pos)
     (add-text-properties 0 1 '(vterm-line-wrap t rear-nonsticky t)
                          fake-newline-text)
